@@ -1,27 +1,39 @@
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { lastValueFrom } from 'rxjs';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { List } from './entities/list.entity';
 
 @Injectable()
 export class ListsService {
-
   constructor(
     @InjectModel(List)
     private listModel: typeof List,
+    private httpService: HttpService,
   ) {}
 
-  create(createListDto: CreateListDto) { // DTO - Data transfer Object
-    return 'This action adds a new list';
+  async create(createListDto: CreateListDto) { // DTO - Data transfer Object
+      const list = await this.listModel.create(createListDto);
+      await lastValueFrom(
+        this.httpService.post('lists', {
+          name: list.name,
+      }),
+    );
+    return list;
   }
 
   findAll() {
-    return `This action returns all lists`;
+    return this.listModel.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} list`;
+  async findOne(id: number) {
+    const list = await this.listModel.findByPk(id);
+    if (!list) {
+      throw new Error('List not found');
+    }
+    return list;
   }
 
   update(id: number, updateListDto: UpdateListDto) {
